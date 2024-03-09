@@ -26,9 +26,3 @@ export const sendEmail = (sender, password, reciever, subject, message) => {
   });
 };
 
-sendEmail(
-  "roshan.2002kumr@gmail.com",
-  "ccxf gtrl hkxv mvpj",
-  "rosh0409singh@gmail.com",
-  "hello new mail"
-);

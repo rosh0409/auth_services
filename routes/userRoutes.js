@@ -110,8 +110,8 @@ userRoutes.post("/forgot-password", async (req, res) => {
   await user.save();
   console.log(user._id);
   sendEmail(
-    "roshan.2002kumr@gmail.com",
-    "ccxf gtrl hkxv mvpj",
+    process.env.SENDEREMAIL,
+    process.env.SENDERPASSWORD,
     email,
     "Reset Password",
     `To reset your password, click on the following link: http://localhost:8000/api/user/reset-password/${token}`
