@@ -46,6 +46,10 @@ const User = mongoose.Schema(
           type: String,
           require: true,
         },
+        date: {
+          type: Date,
+          default: Date.now(),
+        },
       },
     ],
   },
@@ -59,10 +63,10 @@ User.pre("save", async function (next) {
       return next();
     }
     // hash paaword
-    console.log("1");
+    // console.log("1");
     const salt = await bcryptjs.genSalt(10);
     const hashPass = await bcryptjs.hash(this.password, salt);
-    console.log(hashPass);
+    // console.log(hashPass);
     this.password = hashPass;
     next();
   } catch (error) {

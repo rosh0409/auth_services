@@ -188,7 +188,7 @@ userRoutes.post("/liked-post", async (req, res) => {
     if (!existingPost)
       return res.status(400).json({
         status: "failed",
-        message: "Invaild User ID",
+        message: "Invaild Post ID",
       });
     const isLikedPost = await User.find({ _id: user, likes: post });
     if (isLikedPost.length !== 0)
@@ -196,8 +196,8 @@ userRoutes.post("/liked-post", async (req, res) => {
         status: "failed",
         message: "Already liked",
       });
-    const isLikedUser = await User.find({ _id: user, likes: post });
-    if (isLikedUser.length !== 0)
+    const isLikedByUser = await Post.find({ _id: post, likes: user });
+    if (isLikedByUser.length !== 0)
       return res.status(400).json({
         status: "failed",
         message: "Already liked",
@@ -237,6 +237,11 @@ userRoutes.post("/liked-post", async (req, res) => {
 userRoutes.post("/comment-on-post", async (req, res) => {
   try {
     const { user, post, comment } = req.body;
+    if (!(user && post && comment))
+      return res.status(400).json({
+        status: "failed",
+        message: "Please fill all fields",
+      });
     const existingUser = await User.findById(user);
     if (!existingUser)
       return res.status(400).json({
@@ -257,12 +262,12 @@ userRoutes.post("/comment-on-post", async (req, res) => {
     await existingUser.save({ session });
     await session.commitTransaction();
     const commentedPost = await Post.findById(post);
-    const commenteduser = await Post.findById(user);
+    const commentedUser = await User.findById(user);
     return res.status(200).json({
       status: "success",
       message: "Comment posted successfully",
       commentedPost,
-      commenteduser,
+      commentedUser,
     });
   } catch (error) {
     return res.status(500).send({

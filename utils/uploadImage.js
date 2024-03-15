@@ -3,7 +3,7 @@ import fs from "fs";
 
 //! image uploading storage
 
-export let uniqueFileName = "";
+// export let uniqueFileName = "";
 export const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     if (!fs.existsSync("public")) {
@@ -16,8 +16,7 @@ export const storage = multer.diskStorage({
   },
   filename: function (req, file, cb) {
     const uniqueSuffix = Date.now();
-    uniqueFileName = uniqueSuffix + "_" + file.originalname;
+    // uniqueFileName = uniqueSuffix + "_" + file.originalname;
     cb(null, uniqueSuffix + "_" + file.originalname);
-    console.log("uniqueFileName :: ", uniqueFileName);
   },
 });

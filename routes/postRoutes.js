@@ -10,7 +10,6 @@ export const postRoutes = express.Router();
 
 const upload = multer({ storage: storage });
 
-
 //! Get All Post
 postRoutes.get("/get-all-post", async (req, res) => {
   try {
@@ -55,7 +54,6 @@ postRoutes.post("/create-post", upload.single("image"), async (req, res) => {
   try {
     const { title, caption, user } = req.body;
     const existingUser = await User.findById(user);
-    console.log(existingUser);
     if (!existingUser) {
       fs.unlinkSync(path.join("public/uploads/", image));
       return res.status(400).json({
@@ -130,22 +128,36 @@ postRoutes.patch("/update-post/:pid", async (req, res) => {
 postRoutes.delete("/delete-post/:pid", async (req, res) => {
   try {
     const { pid } = req.params;
-    console.log(pid);
     const post = await Post.findById(pid);
-    console.log(post);
     if (!post)
       return res.status(400).json({
         status: "failed",
         message: "Invailid Post ID",
       });
+    const likedUser = post.likes;
+    const commentedUser = post.comments;
+    likedUser.forEach(async (uid) => {
+      await User.updateOne({ _id: uid }, { $pull: { likes: pid } });
+    });
+    commentedUser.forEach(async (obj) => {
+      await User.updateOne(
+        { _id: obj.uid },
+        { $pull: { comments: { pid: pid } } }
+      );
+    });
     const deletedPost = await Post.deleteOne({ _id: pid });
-    const updateUserPost = await User.updateOne({ _id: post.user }, {
-            $pull: { posts: pid, likes: pid, comments: { pid: post } }
-        });
+    const updateUserPost = await User.updateOne(
+      { _id: post.user },
+      {
+        $pull: { posts: pid, likes: pid, comments: { pid: post } },
+      }
+    );
     fs.unlinkSync(path.join("public/uploads/", post.image));
     return res.status(200).json({
       status: "success",
       message: "Post deleted successfully",
+      // likedUser,
+      // commentedUser,
       deletedPost,
       updateUserPost,
     });
