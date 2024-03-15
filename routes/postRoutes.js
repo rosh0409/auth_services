@@ -139,10 +139,9 @@ postRoutes.delete("/delete-post/:pid", async (req, res) => {
         message: "Invailid Post ID",
       });
     const deletedPost = await Post.deleteOne({ _id: pid });
-    const updateUserPost = await User.updateOne(
-      { _id: post.user },
-      { $pull: { posts: pid } }
-    );
+    const updateUserPost = await User.updateOne({ _id: post.user }, {
+            $pull: { posts: pid, likes: pid, comments: { pid: post } }
+        });
     fs.unlinkSync(path.join("public/uploads/", post.image));
     return res.status(200).json({
       status: "success",
