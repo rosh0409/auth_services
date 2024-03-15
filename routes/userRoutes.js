@@ -1,21 +1,32 @@
 import express from "express";
 import emailValidator from "deep-email-validator";
 import User from "../models/user.js";
+import Post from "../models/post.js";
 import bcryptjs from "bcryptjs";
 import { sendEmail } from "../utils/sendEmail.js";
 import generateAuthToken from "../utils/generateToken.js";
+import mongoose from "mongoose";
 export const userRoutes = express.Router();
 
+//! GET Request for getting all registered user
 userRoutes.get("/get-all-user", async (req, res) => {
   try {
     const users = await User.find();
-    return res.send({
+    return res.status(200).send({
       status: "success",
       message: "All users list",
       users,
     });
-  } catch (error) {}
+  } catch (error) {
+    return res.status(500).send({
+      status: "failed",
+      message: "Something went wrong",
+      error: error.message,
+    });
+  }
 });
+
+//! POST Request for registering new user
 userRoutes.post("/register", async (req, res) => {
   const { username, email, password, confPassword } = req.body;
   //   console.log(await emailValidator.validate(email));
@@ -59,6 +70,8 @@ userRoutes.post("/register", async (req, res) => {
     });
   } catch (error) {}
 });
+
+//! POST Request for Logging user
 userRoutes.post("/login", async (req, res) => {
   const { email, password } = req.body;
   //   const isValidEmail = await emailValidator.validate(email);
@@ -89,6 +102,8 @@ userRoutes.post("/login", async (req, res) => {
     message: "User Loggedin successfull",
   });
 });
+
+//! POST Request for forgot password
 userRoutes.post("/forgot-password", async (req, res) => {
   const { email } = req.body;
   if (!email)
@@ -123,6 +138,7 @@ userRoutes.post("/forgot-password", async (req, res) => {
   });
 });
 
+//! POST Request for reseting password
 userRoutes.post("/reset-password/:token", async (req, res) => {
   try {
     const { token } = req.params;
@@ -155,5 +171,104 @@ userRoutes.post("/reset-password/:token", async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+//! POST Request for liking a post
+userRoutes.post("/liked-post", async (req, res) => {
+  try {
+    const { user, post } = req.body;
+    const existingUser = await User.findById(user);
+    if (!existingUser)
+      return res.status(400).json({
+        status: "failed",
+        message: "Invaild User ID",
+      });
+    const existingPost = await Post.findById(post);
+    if (!existingPost)
+      return res.status(400).json({
+        status: "failed",
+        message: "Invaild User ID",
+      });
+    const isLikedPost = await User.find({ _id: user, likes: post });
+    if (isLikedPost.length !== 0)
+      return res.status(400).json({
+        status: "failed",
+        message: "Already liked",
+      });
+    const isLikedUser = await User.find({ _id: user, likes: post });
+    if (isLikedUser.length !== 0)
+      return res.status(400).json({
+        status: "failed",
+        message: "Already liked",
+      });
+    // const session = await mongoose.startSession();
+    // session.startTransaction();
+    await Post.findByIdAndUpdate(post, {
+      $addToSet: { likes: user },
+    });
+    await User.findByIdAndUpdate(user, {
+      $addToSet: { likes: post },
+    });
+    const updatedPost = await Post.findById(post);
+    const updatedUser = await User.findById(user);
+    // const updatedPost = await existingPost.likes.push(user);
+    // await existingPost.save({ session });
+    // const updatedUser = existingUser.likes.push(post);
+    // await existingUser.save({ session });
+    // await session.commitTransaction();
+
+    return res.status(200).json({
+      status: "success",
+      message: "Post Liked",
+      updatedPost,
+      updatedUser,
+    });
+  } catch (error) {
+    return res.status(500).send({
+      status: "failed",
+      message: "Something went wrong",
+      error: error.message,
+    });
+  }
+});
+
+//! POST Request for posting comment on a post
+userRoutes.post("/comment-on-post", async (req, res) => {
+  try {
+    const { user, post, comment } = req.body;
+    const existingUser = await User.findById(user);
+    if (!existingUser)
+      return res.status(400).json({
+        status: "failed",
+        message: "Invaild User ID",
+      });
+    const existingPost = await Post.findById(post);
+    if (!existingPost)
+      return res.status(400).json({
+        status: "failed",
+        message: "Invaild Post ID",
+      });
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    existingPost.comments.push({ uid: user, comment: comment });
+    await existingPost.save({ session });
+    existingUser.comments.push({ pid: post, comment: comment });
+    await existingUser.save({ session });
+    await session.commitTransaction();
+    const commentedPost = await Post.findById(post);
+    const commenteduser = await Post.findById(user);
+    return res.status(200).json({
+      status: "success",
+      message: "Comment posted successfully",
+      commentedPost,
+      commenteduser,
+    });
+  } catch (error) {
+    return res.status(500).send({
+      status: "failed",
+      message: "Something went wrong",
+      error: error.message,
+    });
   }
 });

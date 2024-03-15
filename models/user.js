@@ -21,6 +21,33 @@ const User = mongoose.Schema(
     resetPasswordExpires: {
       type: Date,
     },
+    posts: [
+      {
+        type: mongoose.Types.ObjectId,
+        ref: "post",
+        default: [],
+      },
+    ],
+    likes: [
+      {
+        type: mongoose.Types.ObjectId,
+        ref: "user",
+        default: [],
+      },
+    ],
+    comments: [
+      {
+        pid: {
+          type: mongoose.Types.ObjectId,
+          ref: "post",
+          require: true,
+        },
+        comment: {
+          type: String,
+          require: true,
+        },
+      },
+    ],
   },
   {
     timestamps: true,
