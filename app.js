@@ -4,11 +4,13 @@ import dotenv from "dotenv";
 import { userRoutes } from "./routes/userRoutes.js";
 import bodyParser from "body-parser";
 import { postRoutes } from "./routes/postRoutes.js";
+import cookieParser from "cookie-parser";
 
 dotenv.config();
 
 const app = express();
 
+app.use(cookieParser());
 app.use(bodyParser.json());
 // app.get("/api/post/get-all-post", (req, res) => {
 //   res.send("<h1>hello</h1>");

@@ -6,6 +6,9 @@ import bcryptjs from "bcryptjs";
 import { sendEmail } from "../utils/sendEmail.js";
 import generateAuthToken from "../utils/generateToken.js";
 import mongoose from "mongoose";
+import jwt from "jsonwebtoken";
+import verifyUserToken from "../middleware/verifyUserToken.js";
+
 export const userRoutes = express.Router();
 
 //! GET Request for getting all registered user
@@ -97,10 +100,28 @@ userRoutes.post("/login", async (req, res) => {
       status: "failed",
       message: "Bad Credentials",
     });
-  return res.status(201).json({
-    status: "success",
-    message: "User Loggedin successfull",
-  });
+  const token = generateAuthToken(user._id, "30s");
+  if (req.cookies["internship"]) {
+    return res.status(201).json({
+      message: "Already Logged in",
+    });
+    // res.clearCookie("internship");
+    // console.log("true");
+    // res.cookies["internship"] = "";
+  }
+  return res
+    .cookie("internship", token, {
+      path: "/",
+      expires: new Date(Date.now() + 30000),
+      httpOnly: true,
+      sameSite: "strict",
+    })
+    .status(201)
+    .json({
+      status: "success",
+      message: "User Loggedin successfully",
+    })
+    .end();
 });
 
 //! POST Request for forgot password
@@ -169,8 +190,50 @@ userRoutes.post("/reset-password/:token", async (req, res) => {
       .status(200)
       .json({ status: "success", message: "Password reset successful" });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Internal server error" });
+    return res
+      .status(500)
+      .json({ status: "failed", message: "Internal server error" });
+  }
+});
+
+//!POST Request for logging out a user
+userRoutes.post("/logout",verifyUserToken, async (req, res) => {
+  try {
+    const token = req.headers?.cookie.split("=")[1];
+    // console.log(token);
+    if (!token) {
+      return res.status(400).json({
+        status: "failed",
+        message: "Token not found",
+      });
+    }
+    jwt.verify(token, process.env.JWTSECRETKEY, (err) => {
+      // console.log(user);
+
+      if (err) {
+        return res.status(400).json({
+          status: "failed",
+          message: "Invalid Token",
+          error: err.message,
+        });
+      }
+      return res
+        .clearCookie("internship")
+        .status(200)
+        .json({
+          status: "success",
+          message: "Successfully Logged Out :-)",
+        })
+        .end();
+      // res.clearCookie("internship");
+      // req.cookies["internship"] = "";
+    });
+  } catch (error) {
+    return res.status(500).send({
+      status: "failed",
+      message: "Something went wrong",
+      error: error.message,
+    });
   }
 });
 
