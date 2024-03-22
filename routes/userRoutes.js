@@ -8,11 +8,13 @@ import generateAuthToken from "../utils/generateToken.js";
 import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
 import verifyUserToken from "../middleware/verifyUserToken.js";
+import { encryptData } from "../utils/encryptData.js";
+import { DecryptData } from "../middleware/decryptData.js";
 
 export const userRoutes = express.Router();
 
 //! GET Request for getting all registered user
-userRoutes.get("/get-all-user", async (req, res) => {
+userRoutes.get("/get-all-user", verifyUserToken, async (req, res) => {
   try {
     const users = await User.find();
     return res.status(200).send({
@@ -100,7 +102,7 @@ userRoutes.post("/login", async (req, res) => {
       status: "failed",
       message: "Bad Credentials",
     });
-  const token = generateAuthToken(user._id, "30s");
+  const token = generateAuthToken(user._id, "1m");
   if (req.cookies["internship"]) {
     return res.status(201).json({
       message: "Already Logged in",
@@ -197,7 +199,7 @@ userRoutes.post("/reset-password/:token", async (req, res) => {
 });
 
 //!POST Request for logging out a user
-userRoutes.post("/logout",verifyUserToken, async (req, res) => {
+userRoutes.post("/logout", verifyUserToken, async (req, res) => {
   try {
     const token = req.headers?.cookie.split("=")[1];
     // console.log(token);
@@ -237,10 +239,52 @@ userRoutes.post("/logout",verifyUserToken, async (req, res) => {
   }
 });
 
+//!POST Request for ecrypting data
+userRoutes.post("/encrypt-user", async (req, res) => {
+  try {
+    const { username, email, password, confPassword } = req.body;
+    if (!(username && email && password && confPassword))
+      return res.status(400).json({
+        status: "failed",
+        message: "Please fill all the fields",
+      });
+    const encrptedUsername = encryptData(username).toString();
+    const encrptedEmail = encryptData(email).toString();
+    const encrptedPassword = encryptData(password).toString();
+    const encrptedConfPassword = encryptData(confPassword).toString();
+    console.log(encrptedUsername);
+    return res.status(200).json({
+      status: "success",
+      message: "Encrypted user",
+      username: encrptedUsername,
+      email: encrptedEmail,
+      password: encrptedPassword,
+      confPassword: encrptedConfPassword,
+    });
+  } catch (error) {
+    return res.status(500).send({
+      status: "failed",
+      message: "Something went wrong",
+      error: error.message,
+    });
+  }
+});
+
 //! POST Request for liking a post
-userRoutes.post("/liked-post", async (req, res) => {
+userRoutes.post("/liked-post", verifyUserToken, async (req, res) => {
   try {
     const { user, post } = req.body;
+    if (!(user && post))
+      return res.status(400).json({
+        status: "failed",
+        message: "Please fill all fields",
+      });
+    const user_token = req.uid;
+    if (user !== user_token)
+      return res.status(400).json({
+        status: "failed",
+        message: "User ID and Loggedin user does not match",
+      });
     const existingUser = await User.findById(user);
     if (!existingUser)
       return res.status(400).json({
@@ -297,14 +341,21 @@ userRoutes.post("/liked-post", async (req, res) => {
 });
 
 //! POST Request for posting comment on a post
-userRoutes.post("/comment-on-post", async (req, res) => {
+userRoutes.post("/comment-on-post", verifyUserToken, async (req, res) => {
   try {
     const { user, post, comment } = req.body;
+    const user_token = req.uid;
+    if (user !== user_token)
+      return res.status(400).json({
+        status: "failed",
+        message: "User ID and Loggedin user does not match",
+      });
     if (!(user && post && comment))
       return res.status(400).json({
         status: "failed",
         message: "Please fill all fields",
       });
+
     const existingUser = await User.findById(user);
     if (!existingUser)
       return res.status(400).json({

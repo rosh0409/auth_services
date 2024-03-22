@@ -100,6 +100,8 @@ postRoutes.post("/create-post", upload.single("image"), async (req, res) => {
 postRoutes.patch("/update-post/:pid", async (req, res) => {
   try {
     const { pid } = req.params;
+    const uid = req.uid;
+    console.log(uid);
     const update = req.body;
     const post = await Post.findById(pid);
     if (!post)
@@ -107,9 +109,18 @@ postRoutes.patch("/update-post/:pid", async (req, res) => {
         status: "failed",
         message: "Invailid Post ID",
       });
-    const updatedPost = await Post.findOneAndUpdate({ _id: pid }, update, {
-      new: true,
-    });
+    const updatedPost = await Post.findOneAndUpdate(
+      { _id: pid, user: uid },
+      update,
+      {
+        new: true,
+      }
+    );
+    if (!updatedPost)
+      return res.status(400).json({
+        status: "failed",
+        message: "Unauthorized access to the posts",
+      });
     return res.status(200).json({
       status: "success",
       message: "Post updated successfully",
@@ -128,6 +139,16 @@ postRoutes.patch("/update-post/:pid", async (req, res) => {
 postRoutes.delete("/delete-post/:pid", async (req, res) => {
   try {
     const { pid } = req.params;
+    const uid_token = req.uid;
+    const isValidUserForPost = await Post.findOne({
+      _id: pid,
+      user: uid_token,
+    });
+    if (!isValidUserForPost)
+      return res.status(400).json({
+        status: "failed",
+        message: "Unauthorized access to the posts",
+      });
     const post = await Post.findById(pid);
     if (!post)
       return res.status(400).json({

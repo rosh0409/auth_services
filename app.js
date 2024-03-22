@@ -5,6 +5,7 @@ import { userRoutes } from "./routes/userRoutes.js";
 import bodyParser from "body-parser";
 import { postRoutes } from "./routes/postRoutes.js";
 import cookieParser from "cookie-parser";
+import verifyUserToken from "./middleware/verifyUserToken.js";
 
 dotenv.config();
 
@@ -16,7 +17,7 @@ app.use(bodyParser.json());
 //   res.send("<h1>hello</h1>");
 // });
 app.use("/api/user", userRoutes);
-app.use("/api/post", postRoutes);
+app.use("/api/post",verifyUserToken, postRoutes);
 // app.use("/api/post/get-all-post", (req, res) => {
 //   res.send("rgf");
 // });
